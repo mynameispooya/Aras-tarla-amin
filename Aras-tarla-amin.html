@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه هوشمند گزارش تردد</title>
+    <!-- اضافه کردن کتابخانه SheetJS برای پردازش اکسل در مرورگر -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --success: #28a745;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --border: #e0e0e0;
+        }
+        * { box-sizing: border-box; font-family: Tahoma, "Vazirmatn", sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        /* طراحی کارت‌ها و بخش‌ها */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: none; /* در ابتدا مخفی هستند */
+            animation: fadeIn 0.5s;
+        }
+        .card.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        h1 { text-align: center; color: var(--primary); font-size: 24px; margin-bottom: 30px; }
+        h2 { font-size: 20px; color: var(--primary); border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-top: 0; }
+        
+        /* دکمه‌ها و فرم‌ها */
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; text-align: center; }
+        .btn-upload { border: 2px dashed var(--primary); color: var(--primary); background-color: #f0f8ff; padding: 30px 20px; border-radius: 12px; font-size: 20px; font-weight: bold; width: 100%; cursor: pointer; transition: 0.3s; }
+        .btn-upload:hover { background-color: #e6f2ff; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
+        
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; display: inline-block; margin-top: 15px; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: #004494; }
+        .btn-success { background-color: var(--success); color: white; width: 100%; font-size: 18px; padding: 15px; margin-top: 25px; }
+        .btn-success:hover { background-color: #218838; }
+        
+        /* طراحی چک‌باکس‌ها و رادیوها برای افراد مسن (بزرگ و خوانا) */
+        .radio-group, .checkbox-group { display: flex; flex-direction: column; gap: 15px; margin-top: 15px; }
+        .option-label { display: flex; align-items: center; padding: 15px; background: var(--bg); border-radius: 8px; cursor: pointer; font-size: 16px; border: 1px solid var(--border); transition: 0.2s; }
+        .option-label:hover { background: #e9ecef; }
+        .option-label input { width: 24px; height: 24px; margin-left: 15px; cursor: pointer; }
+        select { width: 100%; padding: 15px; font-size: 16px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; margin-bottom: 15px; }
+
+        /* پیش‌نمایش جدول */
+        .info-box { background-color: #eef2f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; color: #333; }
+        .table-responsive { overflow-x: auto; max-height: 250px; border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: right; }
+        th { background-color: var(--primary); color: white; position: sticky; top: 0; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+
+        /* ریسپانسیو گوشی */
+        @media (max-width: 600px) {
+            h1 { font-size: 20px; }
+            .btn-upload { font-size: 16px; padding: 20px 10px; }
+            .option-label { font-size: 14px; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 سامانه هوشمند گزارش تردد و آمار</h1>
+    
+    <!-- مرحله 0: آپلود فایل -->
+    <div class="card active" id="step0">
+        <h2>مرحله ۱: انتخاب فایل اطلاعات</h2>
+        <p>لطفاً فایل اکسل مرجع (حاصل ادغام) را انتخاب کنید:</p>
+        <div class="upload-btn-wrapper">
+            <button class="btn-upload">📥 برای انتخاب فایل اکسل اینجا کلیک کنید</button>
+            <input type="file" id="excelFile" accept=".xlsx, .xls" />
+        </div>
+        <div id="loadingMsg" style="display:none; text-align:center; color:var(--primary); font-weight:bold; margin-top:20px;">
+            در حال خواندن اطلاعات... لطفاً صبر کنید.
+        </div>
+    </div>
+
+    <!-- مرحله 1: فیلتر ورود و خروج -->
+    <div class="card" id="step1">
+        <h2>مرحله ۲: فیلتر وضعیت تردد</h2>
+        <div class="info-box" id="infoStep1"></div>
+        <div class="radio-group" id="entryExitRadios">
+            <label class="option-label"><input type="radio" name="trafficStatus" value="all" checked> نمایش همه (بدون فیلتر)</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="both"> ورود و خروج هر دو ثبت شده باشند</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="onlyIn"> فقط ورود ثبت شده باشد (خروج خالی)</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="onlyOut"> فقط خروج ثبت شده باشد (ورود خالی)</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="none"> ورود و خروج هر دو خالی باشند</label>
+        </div>
+        <button class="btn btn-primary" onclick="applyStep1()">تایید و رفتن به مرحله بعد ⬅️</button>
+    </div>
+
+    <!-- مرحله 2: فیلتر گیت -->
+    <div class="card" id="step2">
+        <h2>مرحله ۳: انتخاب گیت تردد</h2>
+        <div class="info-box" id="infoStep2"></div>
+        <p>گیت‌های مورد نظر را تیک بزنید (اگر هیچکدام را انتخاب نکنید، همه گیت‌ها لحاظ می‌شوند):</p>
+        <div class="checkbox-group" id="gateCheckboxes"></div>
+        <button class="btn btn-primary" onclick="applyStep2()">تایید و رفتن به مرحله آخر ⬅️</button>
+    </div>
+
+    <!-- مرحله 3: فیلتر پویا -->
+    <div class="card" id="step3">
+        <h2>مرحله ۴: فیلتر و دریافت خروجی نهایی</h2>
+        <div class="info-box" id="infoStep3"></div>
+        
+        <label for="columnSelect"><b>۱. ابتدا یک ستون برای فیلتر انتخاب کنید:</b></label>
+        <select id="columnSelect" onchange="renderDynamicValues()">
+            <option value="">-- انتخاب کنید --</option>
+        </select>
+        
+        <div id="dynamicValuesContainer" style="display:none; margin-top:20px;">
+            <label><b>۲. مقادیر مورد نظر را تیک بزنید:</b></label>
+            <div class="checkbox-group" id="dynamicCheckboxes"></div>
+        </div>
+
+        <button class="btn btn-success" onclick="downloadFinalExcel()">📥 دانلود فایل اکسل نهایی</button>
+    </div>
+</div>
+
+<script>
+    // متغیرهای سراسری برای نگهداری داده‌ها در هر مرحله
+    let rawData = [];
+    let step1Data = [];
+    let step2Data = [];
+    let finalData = [];
+    
+    // تابع تشخیص خالی بودن سلول
+    function isEmpty(val) {
+        if (val === undefined || val === null) return true;
+        let strVal = String(val).trim().toLowerCase();
+        if (strVal === '' || strVal === 'nan' || strVal === 'none' || strVal === 'null') return true;
+        return false;
+    }
+
+    // خواندن فایل اکسل هنگام انتخاب
+    document.getElementById('excelFile').addEventListener('change', function(e) {
+        let file = e.target.files[0];
+        if (!file) return;
+        
+        document.getElementById('loadingMsg').style.display = 'block';
+        
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            let data = new Uint8Array(e.target.result);
+            let workbook = XLSX.read(data, {type: 'array'});
+            let firstSheetName = workbook.SheetNames[0];
+            let worksheet = workbook.Sheets[firstSheetName];
+            
+            // تبدیل شیت به آرایه JSON (ردیف‌ها)
+            rawData = XLSX.utils.sheet_to_json(worksheet, {defval: ""});
+            
+            if(rawData.length > 0) {
+                document.getElementById('step0').classList.remove('active');
+                document.getElementById('step1').classList.add('active');
+                document.getElementById('infoStep1').innerText = `✅ فایل با موفقیت خوانده شد. کل ردیف‌ها: ${rawData.length}`;
+            } else {
+                alert("فایل انتخاب شده خالی است یا ساختار درستی ندارد.");
+            }
+            document.getElementById('loadingMsg').style.display = 'none';
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // پردازش مرحله 1 (ورود و خروج)
+    function applyStep1() {
+        let selectedStatus = document.querySelector('input[name="trafficStatus"]:checked').value;
+        
+        step1Data = rawData.filter(row => {
+            let hasVorood = !isEmpty(row['ورود']);
+            let hasKhorooj = !isEmpty(row['خروج']);
+            
+            if (selectedStatus === 'both') return hasVorood && hasKhorooj;
+            if (selectedStatus === 'onlyIn') return hasVorood && !hasKhorooj;
+            if (selectedStatus === 'onlyOut') return !hasVorood && hasKhorooj;
+            if (selectedStatus === 'none') return !hasVorood && !hasKhorooj;
+            return true; // حالت all
+        });
+
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
+        document.getElementById('infoStep2').innerText = `📊 تعداد ردیف‌ها پس از مرحله اول: ${step1Data.length}`;
+        
+        populateGates();
+    }
+
+    // پر کردن لیست گیت‌ها برای مرحله 2
+    function populateGates() {
+        let container = document.getElementById('gateCheckboxes');
+        container.innerHTML = '';
+        
+        // استخراج نام گیت‌های یونیک از ستون "گیت_1"
+        let gates = new Set();
+        step1Data.forEach(row => {
+            if (!isEmpty(row['گیت_1'])) gates.add(String(row['گیت_1']).trim());
+        });
+        
+        if (gates.size === 0) {
+            container.innerHTML = '<p style="color:red;">هیچ اطلاعاتی در ستون "گیت_1" یافت نشد. می‌توانید از این مرحله عبور کنید.</p>';
+            return;
+        }
+
+        gates.forEach(gate => {
+            let label = document.createElement('label');
+            label.className = 'option-label';
+            label.innerHTML = `<input type="checkbox" value="${gate}"> ${gate}`;
+            container.appendChild(label);
+        });
+    }
+
+    // پردازش مرحله 2 (گیت)
+    function applyStep2() {
+        let checkboxes = document.querySelectorAll('#gateCheckboxes input:checked');
+        let selectedGates = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (selectedGates.length > 0) {
+            step2Data = step1Data.filter(row => {
+                let gateVal = String(row['گیت_1']).trim();
+                return selectedGates.includes(gateVal);
+            });
+        } else {
+            // اگر چیزی انتخاب نشد، همه را رد کن
+            step2Data = [...step1Data];
+        }
+
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step3').classList.add('active');
+        document.getElementById('infoStep3').innerText = `📊 تعداد ردیف‌ها پس از مرحله دوم: ${step2Data.length}`;
+        
+        populateColumns();
+    }
+
+    // پر کردن لیست ستون‌ها برای مرحله نهایی
+    function populateColumns() {
+        let select = document.getElementById('columnSelect');
+        select.innerHTML = '<option value="">-- انتخاب کنید --</option>';
+        
+        if(step2Data.length === 0) return;
+        
+        let columns = Object.keys(step2Data[0]);
+        columns.forEach(col => {
+            let option = document.createElement('option');
+            option.value = col;
+            option.text = col;
+            select.appendChild(option);
+        });
+    }
+
+    // پر کردن چک‌باکس‌های پویا وقتی ستون انتخاب می‌شود
+    function renderDynamicValues() {
+        let col = document.getElementById('columnSelect').value;
+        let containerMain = document.getElementById('dynamicValuesContainer');
+        let containerChecks = document.getElementById('dynamicCheckboxes');
+        
+        if (!col) {
+            containerMain.style.display = 'none';
+            return;
+        }
+        
+        containerMain.style.display = 'block';
+        containerChecks.innerHTML = '';
+        
+        let values = new Set();
+        step2Data.forEach(row => {
+            if (!isEmpty(row[col])) values.add(String(row[col]).trim());
+        });
+        
+        // مرتب‌سازی الفبایی مقادیر
+        let sortedValues = Array.from(values).sort();
+        
+        sortedValues.forEach(val => {
+            let label = document.createElement('label');
+            label.className = 'option-label';
+            label.innerHTML = `<input type="checkbox" value="${val}"> ${val}`;
+            containerChecks.appendChild(label);
+        });
+    }
+
+    // تولید و دانلود خروجی نهایی
+    function downloadFinalExcel() {
+        let col = document.getElementById('columnSelect').value;
+        let checkboxes = document.querySelectorAll('#dynamicCheckboxes input:checked');
+        let selectedValues = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (col && selectedValues.length > 0) {
+            finalData = step2Data.filter(row => {
+                let rowVal = String(row[col]).trim();
+                return selectedValues.includes(rowVal);
+            });
+        } else {
+            // اگر در مرحله آخر فیلتری اعمال نکرد، کل داده مرحله قبل را خروجی بده
+            finalData = [...step2Data];
+        }
+
+        if (finalData.length === 0) {
+            alert("هیچ داده‌ای با فیلترهای انتخابی شما یافت نشد!");
+            return;
+        }
+
+        // تبدیل JSON فیلتر شده به شیت اکسل
+        let worksheet = XLSX.utils.json_to_sheet(finalData);
+        let workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered_Data");
+        
+        // دانلود فایل
+        let dateSuffix = new Date().toISOString().slice(0,10);
+        XLSX.writeFile(workbook, `Report_${dateSuffix}.xlsx`);
+        
+        alert(`✅ فایل اکسل با ${finalData.length} ردیف با موفقیت دانلود شد.`);
+    }
+</script>
+
+</body>
+</html>
