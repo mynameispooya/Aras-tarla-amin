@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سامانه هوشمند گزارش تردد</title>
-    <!-- اضافه کردن کتابخانه SheetJS برای پردازش اکسل در مرورگر -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary: #0056b3;
+            --secondary: #6c757d;
             --success: #28a745;
             --bg: #f4f7f6;
             --card-bg: #ffffff;
@@ -19,7 +19,6 @@
         body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.6; }
         .container { max-width: 900px; margin: 0 auto; }
         
-        /* نوار اطلاع‌رسانی بروزرسانی */
         .notification-bar {
             background-color: #e8f4f8;
             border-right: 5px solid #17a2b8;
@@ -31,65 +30,36 @@
             font-weight: bold;
             color: #0c5460;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            animation: fadeIn 0.5s;
         }
 
-        /* صفحه لودینگ اولیه */
-        #initialLoading {
-            text-align: center;
-            padding: 50px 20px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-        .spinner {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid var(--primary);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px auto;
-        }
+        #initialLoading { text-align: center; padding: 50px 20px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* طراحی کارت‌ها و بخش‌ها */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid var(--border);
-            display: none;
-            animation: fadeIn 0.5s;
-        }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid var(--border); display: none; animation: fadeIn 0.3s; }
         .card.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         h1 { text-align: center; color: var(--primary); font-size: 24px; margin-bottom: 30px; }
         h2 { font-size: 20px; color: var(--primary); border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-top: 0; }
         
-        /* دکمه‌ها و فرم‌ها */
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; display: inline-block; margin-top: 15px; }
-        .btn-primary { background-color: var(--primary); color: white; width: 100%; font-size: 18px; padding: 15px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 25px; }
+        .btn { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; flex: 1; text-align: center; }
+        .btn-primary { background-color: var(--primary); color: white; }
         .btn-primary:hover { background-color: #004494; }
-        .btn-success { background-color: var(--success); color: white; width: 100%; font-size: 18px; padding: 15px; margin-top: 25px; }
+        .btn-secondary { background-color: var(--secondary); color: white; flex: 0.5; }
+        .btn-secondary:hover { background-color: #5a6268; }
+        .btn-success { background-color: var(--success); color: white; width: 100%; margin-top: 20px; }
         .btn-success:hover { background-color: #218838; }
         
         .radio-group, .checkbox-group { display: flex; flex-direction: column; gap: 15px; margin-top: 15px; }
-        .option-label { display: flex; align-items: center; padding: 15px; background: var(--bg); border-radius: 8px; cursor: pointer; font-size: 16px; border: 1px solid var(--border); transition: 0.2s; font-weight: 500;}
+        .option-label { display: flex; align-items: center; padding: 15px; background: var(--bg); border-radius: 8px; cursor: pointer; font-size: 16px; border: 1px solid var(--border); font-weight: 500;}
         .option-label:hover { background: #e9ecef; }
         .option-label input { width: 24px; height: 24px; margin-left: 15px; cursor: pointer; }
         select { width: 100%; padding: 15px; font-size: 16px; border-radius: 8px; border: 1px solid var(--border); margin-top: 10px; margin-bottom: 15px; font-weight: bold;}
-
         .info-box { background-color: #eef2f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; color: #333; font-size: 15px; }
-
-        @media (max-width: 600px) {
-            h1 { font-size: 20px; }
-            .option-label { font-size: 14px; padding: 12px; }
-        }
+        
+        .empty-warning { color: red; font-weight: bold; margin-top: 10px; display: block; }
     </style>
 </head>
 <body>
@@ -97,261 +67,205 @@
 <div class="container">
     <h1>📊 داشبورد هوشمند گزارش تردد و آمار</h1>
     
-    <!-- نوار تاریخ و زمان بروزرسانی -->
-    <div id="updateNotification" class="notification-bar">
-        🕒 در حال بررسی وضعیت فایل...
-    </div>
-
-    <!-- لودینگ اولیه حین دانلود فایل از گیت‌هاب -->
+    <div id="updateNotification" class="notification-bar">🕒 در حال بررسی وضعیت فایل...</div>
+    
     <div id="initialLoading">
         <div class="spinner"></div>
         <h3 style="color: var(--primary);">در حال دریافت جدیدترین اطلاعات از سرور...</h3>
-        <p>لطفاً چند لحظه منتظر بمانید</p>
     </div>
 
-    <!-- مرحله 1: فیلتر ورود و خروج -->
+    <!-- مرحله 1: وضعیت تردد -->
     <div class="card" id="step1">
-        <h2>مرحله ۱: وضعیت تردد</h2>
+        <h2>مرحله ۱: وضعیت تردد (ورود و خروج)</h2>
         <div class="info-box" id="infoStep1"></div>
         <p>لطفاً وضعیت ورود و خروج مورد نظر خود را انتخاب کنید:</p>
         <div class="radio-group" id="entryExitRadios">
-            <label class="option-label"><input type="radio" name="trafficStatus" value="all" checked> نمایش همه پرسنل (بدون فیلتر)</label>
-            <label class="option-label"><input type="radio" name="trafficStatus" value="both"> فقط کسانی که ورود و خروج کامل دارند</label>
-            <label class="option-label"><input type="radio" name="trafficStatus" value="onlyIn"> فقط کسانی که ورود زده‌اند (خروج ناقص)</label>
-            <label class="option-label"><input type="radio" name="trafficStatus" value="onlyOut"> فقط کسانی که خروج زده‌اند (ورود ناقص)</label>
-            <label class="option-label"><input type="radio" name="trafficStatus" value="none"> کسانی که نه ورود دارند نه خروج</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="all" checked> نمایش همه (بدون فیلتر)</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="both"> ورود و خروج هر دو ثبت شده باشند</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="onlyIn"> فقط ورود ثبت شده باشد (خروج خالی)</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="onlyOut"> فقط خروج ثبت شده باشد (ورود خالی)</label>
+            <label class="option-label"><input type="radio" name="trafficStatus" value="none"> ورود و خروج هر دو خالی باشند</label>
         </div>
-        <button class="btn btn-primary" onclick="applyStep1()">تایید و رفتن به مرحله بعد ⬅️</button>
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="goToStep2()">تایید و رفتن به مرحله بعد ⬅️</button>
+        </div>
     </div>
 
     <!-- مرحله 2: فیلتر گیت -->
     <div class="card" id="step2">
         <h2>مرحله ۲: انتخاب گیت تردد</h2>
         <div class="info-box" id="infoStep2"></div>
-        <p>گیت‌های مورد نظر را تیک بزنید (اگر هیچکدام را انتخاب نکنید، همه گیت‌ها لحاظ می‌شوند):</p>
+        <p>گیت‌های مورد نظر را تیک بزنید (انتخاب نکردن به معنای "همه گیت‌ها" است):</p>
         <div class="checkbox-group" id="gateCheckboxes"></div>
-        <button class="btn btn-primary" onclick="applyStep2()">تایید و رفتن به مرحله آخر ⬅️</button>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="backToStep1()">➡️ مرحله قبل</button>
+            <button class="btn btn-primary" onclick="goToStep3()">تایید و رفتن به مرحله آخر ⬅️</button>
+        </div>
     </div>
 
     <!-- مرحله 3: فیلتر پویا -->
     <div class="card" id="step3">
-        <h2>مرحله ۳: فیلتر نهایی و دریافت فایل</h2>
+        <h2>مرحله ۳: فیلتر نهایی و خروجی</h2>
         <div class="info-box" id="infoStep3"></div>
         
-        <label for="columnSelect"><b>۱. طبق چه معیاری تفکیک شود؟ (مثلاً شغل یا مرکز هزینه):</b></label>
+        <label for="columnSelect"><b>۱. ستون مورد نظر برای فیلتر نهایی را انتخاب کنید:</b></label>
         <select id="columnSelect" onchange="renderDynamicValues()">
             <option value="">-- برای انتخاب کلیک کنید --</option>
         </select>
         
         <div id="dynamicValuesContainer" style="display:none; margin-top:20px;">
-            <label><b>۲. موارد مورد نیاز را تیک بزنید:</b></label>
+            <label><b>۲. گزینه‌های مورد نظر را تیک بزنید:</b></label>
             <div class="checkbox-group" id="dynamicCheckboxes"></div>
         </div>
 
-        <button class="btn btn-success" onclick="downloadFinalExcel()">📥 دانلود فایل اکسل خروجی</button>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="backToStep2()">➡️ مرحله قبل</button>
+            <button class="btn btn-success" onclick="downloadFinalExcel()">📥 دانلود اکسل فیلتر شده نهایی</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // نام فایلی که در گیت‌هاب آپلود می‌کنید (همیشه باید همین نام باشد)
-    const FILE_NAME = 'database.xlsx';
+    // توجه: آدرس کامل 리پازیتوری خود را در متغیر زیر جایگذاری کنید
+    const FILE_URL = 'https://mynameispooya.github.io/Aras-tarla-amin/database.xlsx';
     
     let rawData = [];
     let step1Data = [];
     let step2Data = [];
-    let finalData = [];
     
-    // اجرای خودکار به محض باز شدن صفحه
     window.addEventListener('DOMContentLoaded', fetchExcelFromRepo);
 
     async function fetchExcelFromRepo() {
         try {
-            // اضافه کردن تایم‌استمپ برای جلوگیری از کش شدن فایل قدیمی توسط مرورگر
-            const fetchUrl = FILE_NAME + '?t=' + new Date().getTime();
-            
+            const fetchUrl = FILE_URL + '?t=' + new Date().getTime();
             const response = await fetch(fetchUrl);
-            
-            if (!response.ok) {
-                throw new Error('فایل پیدا نشد!');
-            }
+            if (!response.ok) throw new Error('فایل پیدا نشد!');
 
-            // استخراج تاریخ آخرین تغییر فایل از سرور گیت‌هاب
             const lastModified = response.headers.get('Last-Modified');
             const notifBar = document.getElementById('updateNotification');
             notifBar.style.display = 'block';
 
             if (lastModified) {
-                // تبدیل تاریخ میلادی سرور به تاریخ شمسی و ساعت ایران
-                const dateObj = new Date(lastModified);
                 const jalaliDate = new Intl.DateTimeFormat('fa-IR', {
-                    year: 'numeric', month: 'long', day: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                }).format(dateObj);
-                
+                    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                }).format(new Date(lastModified));
                 notifBar.innerHTML = `🕒 <b>آخرین بروزرسانی اطلاعات:</b> ${jalaliDate}`;
-                notifBar.style.borderRightColor = '#28a745'; // سبز شدن نوار
+                notifBar.style.borderRightColor = '#28a745';
             } else {
-                notifBar.innerHTML = `🕒 بروزرسانی اطلاعات با موفقیت انجام شد.`;
+                notifBar.innerHTML = `🕒 فایل با موفقیت بارگذاری شد.`;
             }
 
-            // تبدیل اطلاعات دانلود شده به آرایه و پردازش آن توسط SheetJS
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, {type: 'array'});
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            
-            rawData = XLSX.utils.sheet_to_json(worksheet, {defval: ""});
+            rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
             
             if(rawData.length > 0) {
                 document.getElementById('initialLoading').style.display = 'none';
                 document.getElementById('step1').classList.add('active');
-                document.getElementById('infoStep1').innerText = `✅ اطلاعات با موفقیت بارگذاری شد (تعداد کل پرسنل: ${rawData.length})`;
+                document.getElementById('infoStep1').innerText = `✅ فایل مرجع بارگذاری شد. (کل ردیف‌ها: ${rawData.length})`;
             }
-
         } catch (error) {
-            document.getElementById('initialLoading').innerHTML = `<h3 style="color:red;">❌ خطا در دریافت اطلاعات</h3><p>فایل <b>${FILE_NAME}</b> در سرور پیدا نشد. لطفاً مطمئن شوید که فایل اکسل با همین نام دقیق در گیت‌هاب آپلود شده است.</p>`;
-            console.error(error);
+            document.getElementById('initialLoading').innerHTML = `<h3 style="color:red;">❌ خطا در دریافت فایل</h3><p>آدرس ${FILE_URL} بررسی شود.</p>`;
         }
     }
 
     function isEmpty(val) {
         if (val === undefined || val === null) return true;
-        let strVal = String(val).trim().toLowerCase();
-        if (strVal === '' || strVal === 'nan' || strVal === 'none' || strVal === 'null') return true;
-        return false;
+        let s = String(val).trim().toLowerCase();
+        return (s === '' || s === 'nan' || s === 'none' || s === 'null');
     }
 
-    function applyStep1() {
-        let selectedStatus = document.querySelector('input[name="trafficStatus"]:checked').value;
-        
+    // ناوبری و پردازش بین مراحل
+    function goToStep2() {
+        let status = document.querySelector('input[name="trafficStatus"]:checked').value;
         step1Data = rawData.filter(row => {
-            let hasVorood = !isEmpty(row['ورود']);
-            let hasKhorooj = !isEmpty(row['خروج']);
-            
-            if (selectedStatus === 'both') return hasVorood && hasKhorooj;
-            if (selectedStatus === 'onlyIn') return hasVorood && !hasKhorooj;
-            if (selectedStatus === 'onlyOut') return !hasVorood && hasKhorooj;
-            if (selectedStatus === 'none') return !hasVorood && !hasKhorooj;
-            return true; 
+            let hasIn = !isEmpty(row['ورود']);
+            let hasOut = !isEmpty(row['خروج']);
+            if (status === 'both') return hasIn && hasOut;
+            if (status === 'onlyIn') return hasIn && !hasOut;
+            if (status === 'onlyOut') return !hasIn && hasOut;
+            if (status === 'none') return !hasIn && !hasOut;
+            return true;
         });
 
         document.getElementById('step1').classList.remove('active');
         document.getElementById('step2').classList.add('active');
-        document.getElementById('infoStep2').innerText = `📊 افراد باقیمانده در لیست: ${step1Data.length} نفر`;
+        document.getElementById('infoStep2').innerText = `📊 تعداد ردیف‌ها پس از مرحله ۱: ${step1Data.length}`;
         populateGates();
+    }
+
+    function backToStep1() {
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step1').classList.add('active');
     }
 
     function populateGates() {
         let container = document.getElementById('gateCheckboxes');
         container.innerHTML = '';
-        
         let gates = new Set();
-        step1Data.forEach(row => {
-            if (!isEmpty(row['گیت_1'])) gates.add(String(row['گیت_1']).trim());
-        });
+        step1Data.forEach(row => { if (!isEmpty(row['گیت_1'])) gates.add(String(row['گیت_1']).trim()); });
         
         if (gates.size === 0) {
-            container.innerHTML = '<p style="color:red;">گیت ترددی ثبت نشده است. از این مرحله عبور کنید.</p>';
+            container.innerHTML = '<span class="empty-warning">گیت ترددی یافت نشد. می‌توانید مستقیم به مرحله بعد بروید.</span>';
             return;
         }
-
         gates.forEach(gate => {
-            let label = document.createElement('label');
-            label.className = 'option-label';
-            label.innerHTML = `<input type="checkbox" value="${gate}"> ${gate}`;
-            container.appendChild(label);
+            container.innerHTML += `<label class="option-label"><input type="checkbox" value="${gate}"> ${gate}</label>`;
         });
     }
 
-    function applyStep2() {
-        let checkboxes = document.querySelectorAll('#gateCheckboxes input:checked');
-        let selectedGates = Array.from(checkboxes).map(cb => cb.value);
+    function goToStep3() {
+        let cbx = document.querySelectorAll('#gateCheckboxes input:checked');
+        let selected = Array.from(cbx).map(c => c.value);
+        step2Data = selected.length > 0 ? step1Data.filter(r => selected.includes(String(r['گیت_1']).trim())) : [...step1Data];
         
-        if (selectedGates.length > 0) {
-            step2Data = step1Data.filter(row => {
-                let gateVal = String(row['گیت_1']).trim();
-                return selectedGates.includes(gateVal);
-            });
-        } else {
-            step2Data = [...step1Data];
-        }
-
         document.getElementById('step2').classList.remove('active');
         document.getElementById('step3').classList.add('active');
-        document.getElementById('infoStep3').innerText = `📊 افراد باقیمانده در لیست پس از فیلتر گیت: ${step2Data.length} نفر`;
+        document.getElementById('infoStep3').innerText = `📊 تعداد ردیف‌ها پس از مرحله ۲: ${step2Data.length}`;
         populateColumns();
+    }
+
+    function backToStep2() {
+        document.getElementById('step3').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
     }
 
     function populateColumns() {
         let select = document.getElementById('columnSelect');
         select.innerHTML = '<option value="">-- برای انتخاب کلیک کنید --</option>';
         if(step2Data.length === 0) return;
-        
-        let columns = Object.keys(step2Data[0]);
-        columns.forEach(col => {
-            let option = document.createElement('option');
-            option.value = col;
-            option.text = col;
-            select.appendChild(option);
-        });
+        Object.keys(step2Data[0]).forEach(col => { select.innerHTML += `<option value="${col}">${col}</option>`; });
+        document.getElementById('dynamicValuesContainer').style.display = 'none';
     }
 
     function renderDynamicValues() {
         let col = document.getElementById('columnSelect').value;
-        let containerMain = document.getElementById('dynamicValuesContainer');
-        let containerChecks = document.getElementById('dynamicCheckboxes');
+        let cont = document.getElementById('dynamicValuesContainer');
+        let checks = document.getElementById('dynamicCheckboxes');
+        if (!col) { cont.style.display = 'none'; return; }
         
-        if (!col) {
-            containerMain.style.display = 'none';
-            return;
-        }
+        cont.style.display = 'block';
+        checks.innerHTML = '';
+        let vals = new Set();
+        step2Data.forEach(r => { if (!isEmpty(r[col])) vals.add(String(r[col]).trim()); });
         
-        containerMain.style.display = 'block';
-        containerChecks.innerHTML = '';
-        
-        let values = new Set();
-        step2Data.forEach(row => {
-            if (!isEmpty(row[col])) values.add(String(row[col]).trim());
-        });
-        
-        let sortedValues = Array.from(values).sort();
-        
-        sortedValues.forEach(val => {
-            let label = document.createElement('label');
-            label.className = 'option-label';
-            label.innerHTML = `<input type="checkbox" value="${val}"> ${val}`;
-            containerChecks.appendChild(label);
+        Array.from(vals).sort().forEach(v => {
+            checks.innerHTML += `<label class="option-label"><input type="checkbox" value="${v}"> ${v}</label>`;
         });
     }
 
     function downloadFinalExcel() {
         let col = document.getElementById('columnSelect').value;
-        let checkboxes = document.querySelectorAll('#dynamicCheckboxes input:checked');
-        let selectedValues = Array.from(checkboxes).map(cb => cb.value);
+        let cbx = document.querySelectorAll('#dynamicCheckboxes input:checked');
+        let selected = Array.from(cbx).map(c => c.value);
         
-        if (col && selectedValues.length > 0) {
-            finalData = step2Data.filter(row => {
-                let rowVal = String(row[col]).trim();
-                return selectedValues.includes(rowVal);
-            });
-        } else {
-            finalData = [...step2Data];
-        }
+        let finalData = (col && selected.length > 0) ? step2Data.filter(r => selected.includes(String(r[col]).trim())) : [...step2Data];
+        if (finalData.length === 0) return alert("هیچ داده‌ای یافت نشد!");
 
-        if (finalData.length === 0) {
-            alert("هیچ داده‌ای با این فیلترها یافت نشد!");
-            return;
-        }
-
-        let worksheet = XLSX.utils.json_to_sheet(finalData);
-        let workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered_Data");
-        
-        // نام‌گذاری هوشمند فایل خروجی برای رئیس شما
-        const now = new Intl.DateTimeFormat('fa-IR').format(new Date()).replace(/\//g, '-');
-        XLSX.writeFile(workbook, `گزارش_تردد_${now}.xlsx`);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(finalData), "Filtered");
+        XLSX.writeFile(wb, `Report_${new Intl.DateTimeFormat('fa-IR').format(new Date()).replace(/\//g,'-')}.xlsx`);
     }
 </script>
-
 </body>
 </html>
